@@ -15,7 +15,9 @@ echo Linking kernel image...
 g++ -m32 -ffreestanding -nostdlib -Wl,-Ttext=0x100000 -Wl,--image-base=0x100000 -o kernel.exe kernel.o afs_set.o disk.o screen.o
 C:\Users\feltoza\gcc\bin\..\lib\gcc\x86_64-w64-mingw32\15.2.0\..\..\..\..\x86_64-w64-mingw32\bin\objcopy.exe -O binary kernel.exe kernel.bin
 
-move /Y kernel.o afs_set.o disk.o screen.o kernel.exe kernel.bin ..\build
+move /Y *.o ..\build
+move /Y kernel.exe ..\build
+move /Y kernel.bin ..\build
 cd ..
 
 echo Assembling boot components...

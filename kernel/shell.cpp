@@ -4,6 +4,37 @@
 #include "keyboard.h"
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int strcmp(const char* a, const char* b)
+{
+    while (*a && *a == *b) {
+        a++;
+        b++;
+    }
+    return (unsigned char)*a - (unsigned char)*b;
+}
+
+size_t strlen(const char* s)
+{
+    size_t len = 0;
+    while (*s++) {
+        len++;
+        s++;
+    }
+    return len;
+}
+
+void __chkstk_ms()
+{
+}
+
+#ifdef __cplusplus
+}
+#endif
+
 static bool handle_gcc(int argc, char* argv[]);
 static bool handle_fasm(int argc, char* argv[]);
 static bool handle_sh(int argc, char* argv[]);
@@ -295,6 +326,8 @@ static bool shell_resolve_and_execute(const char* name, int argc, char* argv[])
 
 static bool compile_fasm_source(const char* source, const uint8_t* data, uint32_t size, uint8_t* out, uint32_t* out_size)
 {
+    (void)data;
+    (void)size;
     uint8_t code[1024];
     uint8_t data_area[1024];
     uint32_t code_pos = 0;
@@ -416,6 +449,8 @@ static bool compile_fasm_source(const char* source, const uint8_t* data, uint32_
 
 static bool compile_gcc_source(const char* source, const uint8_t* data, uint32_t size, uint8_t* out, uint32_t* out_size)
 {
+    (void)data;
+    (void)size;
     uint8_t code[1024];
     uint8_t data_area[1024];
     uint32_t code_pos = 0;

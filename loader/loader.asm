@@ -36,7 +36,7 @@ start:
     int 0x13
     jc disk_error
 
-    call clear_memory
+    ; Kernel is loaded at 0x10000, do not clear it.
     call enable_a20
     lgdt [gdt_descriptor]
 

@@ -3,102 +3,122 @@ entry main
 
 section '.text' code readable executable
 
+CODE_SEL equ 0x08
+DATA_SEL equ 0x10
+
 main:
-    ; Save the ImageHandle and SystemTable pointers passed by the firmware
     mov [ImageHandle], rcx
     mov [SystemTable], rdx
 
-    ; Clear the screen to start fresh
-    ; SystemTable->ConOut->ClearScreen(SystemTable->ConOut)
-    mov rcx, [SystemTable]
-    mov rcx, [rcx + 64]      ; ConOut pointer (Offset 64)
-    mov rax, [rcx + 48]      ; ClearScreen function pointer (Offset 48)
-    sub rsp, 32              ; Shadow space for Microsoft x64 calling convention
-    call rax
-    add rsp, 32
-
-menu_loop:
-    ; Print the Title
+    call clear_screen
     mov rdx, msg_title
     call print_string
 
-    ; Print Option 1
-    mov rdx, msg_opt1
-    call print_string
-
-    ; Print Option 2
-    mov rdx, msg_opt2
-    call print_string
-
-    ; Print Prompt
-    mov rdx, msg_prompt
-    call print_string
-
-wait_key:
-    ; Wait for a keypress
-    ; SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &KeyData)
     mov rcx, [SystemTable]
-    mov rcx, [rcx + 32]      ; ConIn pointer (Offset 32)
-    lea rdx, [KeyData]       ; Pointer to output structure
-    mov rax, [rcx + 8]       ; ReadKeyStroke function pointer (Offset 8)
+    mov rcx, [rcx + 96]          ; BootServices pointer
+    mov [BootServices], rcx
+
+    lea rdx, [gEfiSimpleFileSystemProtocolGuid]
+    lea r8, [FileSystem]
+    mov rcx, [BootServices]
+    mov rax, [rcx + 0x88]        ; HandleProtocol
     sub rsp, 32
     call rax
     add rsp, 32
-
-    ; Check if ReadKeyStroke returned success (0)
     test rax, rax
-    jnz wait_key             ; If error or no key, try again
+    jne boot_failed
 
-    ; Check which key was pressed
-    ; KeyData structure: UnicodeChar (WORD at offset 2)
-    movzx eax, word [KeyData + 2]
-
-    cmp eax, '1'
-    je boot_kernel_selected
-
-    cmp eax, '2'
-    je reboot_selected
-
-    jmp menu_loop            ; Invalid key, redraw / loop
-
-boot_kernel_selected:
-    mov rdx, msg_booting
-    call print_string
-    
-    ; --- YOUR KERNEL LOADING CODE GOES HERE ---
-    ; In a full loader, you would use SystemTable->BootServices->OpenFile
-    ; to load your 'kernel.bin' into memory, then jump to its entry point.
-    
-    jmp $                    ; Halt for now
-
-reboot_selected:
-    ; SystemTable->RuntimeServices->ResetSystem(EfiResetCold, 0, 0, NULL)
-    mov rcx, [SystemTable]
-    mov rcx, [rcx + 88]      ; RuntimeServices pointer (Offset 88)
-    mov rax, [rcx + 104]     ; ResetSystem function pointer (Offset 104)
-    
-    xor ecx, ecx             ; 0 = EfiResetCold
-    xor edx, edx             ; Status = 0
-    xor r8d, r8d             ; DataSize = 0
-    xor r9d, r9d             ; ResetData = NULL
+    mov rcx, [FileSystem]
+    lea rdx, [RootDir]
+    mov rax, [rcx + 8]           ; OpenVolume
     sub rsp, 32
     call rax
     add rsp, 32
+    test rax, rax
+    jne boot_failed
+
+    mov rcx, [RootDir]
+    lea rdx, [KernelPath]
+    mov r8, [KernelOpenMode]
+    xor r9, r9
+    sub rsp, 32
+    mov qword [rsp], 0
+    mov rax, [rcx + 8]           ; Open
+    call rax
+    add rsp, 32
+    test rax, rax
+    jne boot_failed
+
+    mov rcx, [BootServices]
+    mov rdx, 2                   ; EfiAllocateAddress
+    mov r8, 2                   ; EfiLoaderData
+    mov r9, 8                   ; 8 pages = 32KiB
+    lea r10, [KernelAddr]
+    mov rax, [rcx + 0x18]        ; AllocatePages
+    sub rsp, 32
+    call rax
+    add rsp, 32
+    test rax, rax
+    jne boot_failed
+
+    mov rcx, [KernelFile]
+    lea rdx, [KernelSize]
+    mov r8, [KernelAddr]
+    mov rax, [rcx + 0x20]        ; Read
+    sub rsp, 32
+    call rax
+    add rsp, 32
+    test rax, rax
+    jne boot_failed
+
+    mov rdx, msg_loaded
+    call print_string
+
+    lgdt [GDTDescriptor]
+    push word 0x08
+    lea rax, [protected_entry]
+    push rax
+    retfq
+
+protected_entry:
+    use32
+    mov ax, DATA_SEL
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    mov esp, 0x9FC00
+    mov eax, dword [KernelAddr]
+    jmp eax
+
+    use64
+boot_failed:
+    mov rdx, msg_failed
+    call print_string
+    hlt
     jmp $
 
-; --- Helper Function: Print String ---
-; Input: RDX = Pointer to UTF-16 (wide) null-terminated string
+clear_screen:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 32
+    mov rcx, [SystemTable]
+    mov rcx, [rcx + 64]          ; ConOut
+    mov rax, [rcx + 48]          ; ClearScreen
+    call rax
+    mov rsp, rbp
+    pop rbp
+    ret
+
 print_string:
     push rbp
     mov rbp, rsp
-    sub rsp, 32              ; Shadow space
-
+    sub rsp, 32
     mov rcx, [SystemTable]
-    mov rcx, [rcx + 64]      ; ConOut pointer
-    mov rax, [rcx + 8]       ; OutputString function pointer (Offset 8)
-    ; RCX is already ConOut, RDX is already the string pointer
+    mov rcx, [rcx + 64]          ; ConOut
+    mov rax, [rcx + 8]           ; OutputString
     call rax
-
     mov rsp, rbp
     pop rbp
     ret
@@ -108,18 +128,43 @@ section '.data' data readable writeable
 align 8
 ImageHandle dq 0
 SystemTable dq 0
+BootServices dq 0
+FileSystem dq 0
+RootDir dq 0
+KernelFile dq 0
+KernelAddr dq 0
+KernelSize dq 0
+KernelOpenMode dq 1
 
-; UEFI uses 16-bit Unicode (UTF-16) strings. FASM's 'du' defines user data as wide chars.
-; 13, 10 is CR/LF for newlines.
-msg_title   du 13, 10, '=== GRUB-Like FASM Bootloader ===', 13, 10, 0
-msg_opt1    du 13, 10, ' [1] Boot Custom Kernel (kernel.bin)', 0
-msg_opt2    du 13, 10, ' [2] Reboot Machine', 13, 10, 0
-msg_prompt  du 13, 10, ' Select an option: ', 0
-msg_booting du 13, 10, 'Loading kernel.bin...', 13, 10, 0
+; GUID for EFI_SIMPLE_FILE_SYSTEM_PROTOCOL: 09576e91-6d3f-11d2-8e39-00a0c969723b
+align 8
+gEfiSimpleFileSystemProtocolGuid:
+    dd 0x09576e91
+    dw 0x6d3f
+    dw 0x11d2
+    db 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b
 
-align 4
-KeyData:
-    .ScanCode    dw 0
-    .UnicodeChar dw 0
+align 2
+KernelPath:
+    dw 'k', 'e', 'r', 'n', 'e', 'l', '.', 'b', 'i', 'n', 0
+
+align 2
+msg_title   du 13, 10, '=== SNU UEFI Loader ===', 13, 10, 0
+msg_loaded  du 13, 10, 'kernel.bin loaded, jumping to OS...', 13, 10, 0
+msg_failed  du 13, 10, 'UEFI loader failed to boot kernel.bin', 13, 10, 0
+
+section '.const' data readable
+
+align 8
+GDTDescriptor:
+    dw gdt_end - gdt - 1
+    dq gdt
+
+gdt:
+    dq 0
+    dq 0x00CF9A000000FFFF    ; code segment, 32-bit, readable, accessed=0
+    dq 0x00CF92000000FFFF    ; data segment, 32-bit, accessed=0
+
+gdt_end:
 
 section '.reloc' fixups data readable discardable

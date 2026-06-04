@@ -1,6 +1,7 @@
 from pathlib import Path
 
 root = Path(__file__).parent
+repo = root.parent
 boot = root / 'boot.bin'
 loader = root / 'loader.bin'
 kernel = root / 'kernel.bin'

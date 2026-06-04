@@ -28,3 +28,13 @@ image_data[6 * 512:6 * 512 + len(kernel_data)] = kernel_data
 
 image.write_bytes(image_data)
 print(f"Created bootable image: {image.resolve()}")
+
+iso_dir = repo / "iso"
+if iso_dir.exists():
+    iso_snu = iso_dir / "snu.img"
+    iso_snu.write_bytes(image_data)
+    print(f"Copied floppy image into ISO source: {iso_snu.resolve()}")
+
+    iso_kernel = iso_dir / "kernel.bin"
+    iso_kernel.write_bytes(kernel_data)
+    print(f"Copied kernel binary into ISO source: {iso_kernel.resolve()}")

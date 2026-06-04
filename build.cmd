@@ -37,7 +37,7 @@ echo Creating bootable image...
 python -u build\make_image.py
 
 echo Creating UEFI ISO image...
-python -u TOOL\make_iso.py || echo ISO creation skipped. Install xorriso or mkisofs to generate build\snu.iso.
+call TOOL\make_iso.bat || echo ISO creation skipped. Install xorriso, genisoimage, or mkisofs, or ensure Python is available to generate build\snu.iso.
 
 echo Build complete. Output files in build\
 dir build\

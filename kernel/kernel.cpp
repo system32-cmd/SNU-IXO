@@ -1,9 +1,10 @@
 ﻿#include "screen.h"
 #include "afs_set.h"
 #include "disk.h"
+#include "shell.h"
 
 extern "C" void kernel_main();
-extern "C" void _start() { kernel_main(); }
+extern "C" void start() { kernel_main(); }
 
 extern "C" void kernel_main()
 {
@@ -16,12 +17,10 @@ extern "C" void kernel_main()
         for (;;) asm volatile("hlt");
     }
 
-    if (afs_mount()) {
-        print("AFS mount OK\r\n");
-    } else {
+    if (!afs_mount()) {
         print("AFS mount failed\r\n");
+        for (;;) asm volatile("hlt");
     }
 
-    print("SNU is ready. Press any key in example to continue...\r\n");
-    for (;;) asm volatile("hlt");
+    shell_main();
 }

@@ -24,7 +24,7 @@ if len(kernel_data) > 64 * 512:
 image_data = bytearray(1440 * 1024)
 image_data[0:512] = boot_data
 image_data[512:512 + len(loader_data)] = loader_data
-image_data[5 * 512:5 * 512 + len(kernel_data)] = kernel_data
+image_data[6 * 512:6 * 512 + len(kernel_data)] = kernel_data
 
 image.write_bytes(image_data)
 print(f"Created bootable image: {image.resolve()}")

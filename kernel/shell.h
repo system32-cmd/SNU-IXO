@@ -4,8 +4,8 @@
 extern "C" {
 #endif
 
-char keyboard_read_char();
-char keyboard_wait_char();
+void shell_main();
+bool shell_run_init_service();
 
 #ifdef __cplusplus
 }

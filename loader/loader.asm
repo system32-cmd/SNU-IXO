@@ -20,7 +20,7 @@ start:
     mov dl, [BOOT_DRIVE_ADDR]
     xor dh, dh
     xor ch, ch
-    mov cl, 5
+    mov cl, 6
     mov ah, 0x02
     mov al, 32
     mov bx, 0
@@ -74,6 +74,7 @@ enable_a20:
     ret
 
 protected_entry:
+    use32
     mov ax, DATA_SEL
     mov ds, ax
     mov es, ax
@@ -81,7 +82,8 @@ protected_entry:
     mov gs, ax
     mov ss, ax
     mov esp, 0x9FC00
-    jmp $
+    mov eax, 0x10000
+    jmp eax
 
 print_error:
     mov si, err_msg

@@ -10,14 +10,20 @@ g++ -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c kernel.cpp -o 
 gcc -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c afs_set.c -o afs_set.o
 gcc -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c disk.cpp -o disk.o
 g++ -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c screen.cpp -o screen.o
+g++ -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c fs.cpp -o fs.o
+g++ -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c shell.cpp -o shell.o
+g++ -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c keyboard.cpp -o keyboard.o
 
 echo Linking kernel image...
-C:\Users\feltoza\gcc\bin\..\lib\gcc\x86_64-w64-mingw32\15.2.0\..\..\..\..\x86_64-w64-mingw32\bin\ld.exe -b binary -Ttext=0x100000 --image-base=0x100000 --file-alignment 4 --section-alignment 4 -e 0x100000 -o kernel.bin kernel.o afs_set.o disk.o screen.o
+C:\Users\feltoza\gcc\bin\..\lib\gcc\x86_64-w64-mingw32\15.2.0\..\..\..\..\x86_64-w64-mingw32\bin\ld.exe -b binary -Ttext=0x10000 --image-base=0x10000 --file-alignment 4 --section-alignment 4 -o kernel.bin kernel.o afs_set.o disk.o screen.o fs.o shell.o keyboard.o
 
 move /Y kernel.o ..\build
 move /Y afs_set.o ..\build
 move /Y disk.o ..\build
 move /Y screen.o ..\build
+move /Y fs.o ..\build
+move /Y shell.o ..\build
+move /Y keyboard.o ..\build
 move /Y kernel.bin ..\build
 cd ..
 

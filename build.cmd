@@ -12,9 +12,12 @@ gcc -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c disk.cpp -o di
 g++ -m32 -ffreestanding -fno-stack-protector -O2 -Wall -Wextra -c screen.cpp -o screen.o
 
 echo Linking kernel image...
-C:\Users\feltoza\gcc\bin\..\lib\gcc\x86_64-w64-mingw32\15.2.0\..\..\..\..\x86_64-w64-mingw32\bin\ld.exe -b binary -Ttext=0x100000 --section-alignment 4 -e __start -o kernel.bin kernel.o afs_set.o disk.o screen.o
+C:\Users\feltoza\gcc\bin\..\lib\gcc\x86_64-w64-mingw32\15.2.0\..\..\..\..\x86_64-w64-mingw32\bin\ld.exe -b binary -Ttext=0x100000 --image-base=0x100000 --file-alignment 4 --section-alignment 4 -e 0x100000 -o kernel.bin kernel.o afs_set.o disk.o screen.o
 
-move /Y kernel.o afs_set.o disk.o screen.o ..\build
+move /Y kernel.o ..\build
+move /Y afs_set.o ..\build
+move /Y disk.o ..\build
+move /Y screen.o ..\build
 move /Y kernel.bin ..\build
 cd ..
 
